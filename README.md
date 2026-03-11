@@ -21,39 +21,96 @@ Then in Helix:
 - `:config-open` - open your Helix config.
 - `:lsp-restart` - restart language servers.
 
-## Shortcut table (WSAD profile v1)
+## Shortcut tables (WSAD profile v1)
 
-This table is the current source of truth.  
-We will update it iteratively as we tune your layout.
+These tables are the current source of truth.  
+We will update them iteratively.
 
-| Category | Mode | Keys | Action | Helix command |
-|---|---|---|---|---|
-| Movement | Normal | `w` | Move up | `move_line_up` |
-| Movement | Normal | `a` | Move left | `move_char_left` |
-| Movement | Normal | `s` | Move down | `move_line_down` |
-| Movement | Normal | `d` | Move right | `move_char_right` |
-| Movement | Normal | `q` | Previous word start | `move_prev_word_start` |
-| Movement | Normal | `e` | Next word start | `move_next_word_start` |
-| Movement | Normal | `z` | Previous word end | `move_prev_word_end` |
-| Movement | Normal | `x` | Next word end | `move_next_word_end` |
-| Selection | Select | `w/a/s/d` | Extend selection up/left/down/right | `extend_*` |
-| Editing | Insert | `jk` | Exit insert mode | `normal_mode` |
-| Save | Normal/Insert/Select | `Ctrl+s` | Save file | `:write` |
-| Navigation | Normal | `Ctrl+p` | Open file picker | `file_picker` |
-| Navigation | Normal | `Ctrl+b` | Open buffer picker | `buffer_picker` |
-| Search | Normal | `Ctrl+f` | Global search in workspace | `global_search` |
-| Diagnostics | Normal | `Ctrl+d` | Open diagnostics picker | `diagnostics_picker` |
-| Docs | Normal | `Ctrl+k` | Hover docs | `hover` |
-| Completion | Insert | `Ctrl+space` | Trigger completion | `completion` |
-| Leader | Normal (`space`) | `space` + `f` | File picker | `file_picker` |
-| Leader | Normal (`space`) | `space` + `b` | Buffer picker | `buffer_picker` |
-| Leader | Normal (`space`) | `space` + `g` | Global search | `global_search` |
-| Leader | Normal (`space`) | `space` + `d` | Diagnostics picker | `diagnostics_picker` |
-| Leader | Normal (`space`) | `space` + `a` | Code action | `code_action` |
-| Leader | Normal (`space`) | `space` + `r` | Rename symbol | `rename_symbol` |
-| Leader | Normal (`space`) | `space` + `h` | Hover docs | `hover` |
-| Config | Normal (`space`) | `space` + `c` | Open Helix config | `:config-open` |
-| Config | Normal (`space`) | `space` + `R` | Reload Helix config | `:config-reload` |
+### Movement
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `w` | Move up | `move_line_up` |
+| Normal | `a` | Move left | `move_char_left` |
+| Normal | `s` | Move down | `move_line_down` |
+| Normal | `d` | Move right | `move_char_right` |
+| Normal | `q` | Previous word start | `move_prev_word_start` |
+| Normal | `e` | Next word start | `move_next_word_start` |
+| Normal | `z` | Previous word end | `move_prev_word_end` |
+| Normal | `x` | Next word end | `move_next_word_end` |
+
+### Selection
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Select | `w` | Extend up | `extend_line_up` |
+| Select | `a` | Extend left | `extend_char_left` |
+| Select | `s` | Extend down | `extend_line_down` |
+| Select | `d` | Extend right | `extend_char_right` |
+
+### Editing
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Insert | `jk` | Exit insert mode | `normal_mode` |
+
+### Save
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `Ctrl+s` | Save file | `:write` |
+| Insert | `Ctrl+s` | Save file | `:write` |
+| Select | `Ctrl+s` | Save file | `:write` |
+
+### Navigation
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `Ctrl+p` | Open file picker | `file_picker` |
+| Normal | `Ctrl+b` | Open buffer picker | `buffer_picker` |
+
+### Search
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `Ctrl+f` | Global search in workspace | `global_search` |
+
+### Diagnostics
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `Ctrl+d` | Open diagnostics picker | `diagnostics_picker` |
+
+### Docs
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `Ctrl+k` | Hover docs | `hover` |
+
+### Completion
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Insert | `Ctrl+space` | Trigger completion | `completion` |
+
+### Leader
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal (`space`) | `space` + `f` | File picker | `file_picker` |
+| Normal (`space`) | `space` + `b` | Buffer picker | `buffer_picker` |
+| Normal (`space`) | `space` + `g` | Global search | `global_search` |
+| Normal (`space`) | `space` + `d` | Diagnostics picker | `diagnostics_picker` |
+| Normal (`space`) | `space` + `a` | Code action | `code_action` |
+| Normal (`space`) | `space` + `r` | Rename symbol | `rename_symbol` |
+| Normal (`space`) | `space` + `h` | Hover docs | `hover` |
+
+### Config
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal (`space`) | `space` + `c` | Open Helix config | `:config-open` |
+| Normal (`space`) | `space` + `R` | Reload Helix config | `:config-reload` |
 
 ## Included languages
 
