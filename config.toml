@@ -1,0 +1,92 @@
+theme = "onedark"
+
+[editor]
+line-number = "relative"
+cursorline = true
+bufferline = "multiple"
+color-modes = true
+true-color = true
+text-width = 100
+rulers = [100]
+auto-format = true
+completion-trigger-len = 1
+end-of-line-diagnostics = "hint"
+popup-border = "all"
+
+[editor.statusline]
+left = ["mode", "spinner", "file-base-name", "read-only-indicator", "file-modification-indicator"]
+center = ["version-control"]
+right = ["diagnostics", "selections", "position", "position-percentage", "file-encoding", "file-line-ending", "file-type"]
+separator = "|"
+
+[editor.cursor-shape]
+normal = "block"
+insert = "bar"
+select = "underline"
+
+[editor.file-picker]
+hidden = false
+git-ignore = true
+git-global = true
+git-exclude = true
+
+[editor.search]
+smart-case = true
+wrap-around = true
+
+[editor.indent-guides]
+render = true
+character = "|"
+skip-levels = 1
+
+[editor.lsp]
+display-messages = true
+display-inlay-hints = true
+display-signature-help-docs = true
+
+[editor.inline-diagnostics]
+cursor-line = "warning"
+other-lines = "disable"
+
+[editor.soft-wrap]
+enable = false
+
+[keys.normal]
+# WSAD profile v1: movement is centered around the gamer keyboard area.
+w = "move_line_up"
+a = "move_char_left"
+s = "move_line_down"
+d = "move_char_right"
+q = "move_prev_word_start"
+e = "move_next_word_start"
+z = "move_prev_word_end"
+x = "move_next_word_end"
+C-s = ":write"
+C-p = "file_picker"
+C-b = "buffer_picker"
+C-f = "global_search"
+C-d = "diagnostics_picker"
+C-k = "hover"
+
+[keys.insert]
+j = { k = "normal_mode" }
+C-s = ":write"
+C-space = "completion"
+
+[keys.select]
+w = "extend_line_up"
+a = "extend_char_left"
+s = "extend_line_down"
+d = "extend_char_right"
+C-s = ":write"
+
+[keys.normal.space]
+f = "file_picker"
+b = "buffer_picker"
+g = "global_search"
+d = "diagnostics_picker"
+a = "code_action"
+r = "rename_symbol"
+h = "hover"
+c = ":config-open"
+R = ":config-reload"

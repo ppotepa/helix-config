@@ -1,0 +1,92 @@
+# Overrides for common languages.
+# Helix merges this file with the built-in `languages.toml`.
+
+[[language]]
+name = "rust"
+auto-format = true
+rulers = [100]
+
+[[language]]
+name = "go"
+auto-format = true
+rulers = [100]
+
+[[language]]
+name = "python"
+auto-format = true
+rulers = [88]
+indent = { tab-width = 4, unit = "    " }
+
+[[language]]
+name = "javascript"
+auto-format = true
+rulers = [100]
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "typescript"
+auto-format = true
+rulers = [100]
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "jsx"
+auto-format = true
+rulers = [100]
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "tsx"
+auto-format = true
+rulers = [100]
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "json"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "yaml"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "toml"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "bash"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "lua"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "nix"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "html"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "css"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "scss"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+
+[[language]]
+name = "markdown"
+text-width = 100
+indent = { tab-width = 2, unit = "  " }
