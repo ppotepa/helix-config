@@ -1,0 +1,19 @@
+defaults: &defaults
+  retries: 3
+  timeout: 10s
+  greeting: "Hello from YAML"
+
+jobs:
+  build:
+    <<: *defaults
+    steps:
+      - name: lint
+        run: npm run lint
+      - name: test
+        run: npm test
+  deploy:
+    <<: *defaults
+    timeout: 30s
+    env:
+      region: eu-central-1
+      canary: true

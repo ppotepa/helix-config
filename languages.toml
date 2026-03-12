@@ -62,7 +62,7 @@ language-servers = ["yaml-language-server", "ansible-language-server"]
 name = "toml"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
-language-servers = ["taplo"]
+language-servers = []
 
 [[language]]
 name = "bash"

@@ -1,0 +1,29 @@
+$accent: #ff5a36;
+$radius: 10px;
+
+@mixin card($padding: 1rem) {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: $radius;
+  padding: $padding;
+}
+
+.hello-box {
+  @include card(1.25rem);
+  background: #fff;
+
+  h2 {
+    color: $accent;
+    margin: 0 0 0.75rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+
+    li {
+      &:not(:last-child) {
+        margin-bottom: 0.35rem;
+      }
+    }
+  }
+}

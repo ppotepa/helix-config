@@ -1,0 +1,22 @@
+title = "Advanced Hello TOML"
+version = 1
+active = true
+
+[owner]
+name = "Ada"
+email = "ada@example.com"
+
+[server]
+host = "127.0.0.1"
+port = 8080
+features = ["lsp", "format", "diagnostics"]
+
+[[users]]
+id = 1
+name = "Ada"
+roles = ["admin", "author"]
+
+[[users]]
+id = 2
+name = "Grace"
+roles = ["reader"]

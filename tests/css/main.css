@@ -1,0 +1,35 @@
+:root {
+  --bg: #f7f9fc;
+  --text: #1c2430;
+  --accent: #007acc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--text);
+  background: linear-gradient(120deg, var(--bg), #eef3ff);
+}
+
+.panel {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 1rem 1.25rem;
+  border: 1px solid #d8e0ef;
+  border-radius: 12px;
+}
+
+.panel h1::after {
+  content: " -> Hello from CSS";
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .panel {
+    margin: 1rem;
+  }
+}

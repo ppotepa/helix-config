@@ -1,0 +1,26 @@
+{
+  "app": "advanced-hello-json",
+  "version": 1,
+  "features": {
+    "syntaxHighlight": true,
+    "lsp": true,
+    "completion": true
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Ada",
+      "roles": ["admin", "author"]
+    },
+    {
+      "id": 2,
+      "name": "Grace",
+      "roles": ["reader"]
+    }
+  ],
+  "metadata": {
+    "createdBy": "helix-smoke",
+    "tags": ["json", "test", "hello"],
+    "nullableField": null
+  }
+}

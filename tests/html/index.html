@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Hello HTML</title>
+    <style>
+      :root { --brand: #1f6feb; }
+      body { font-family: ui-sans-serif, system-ui; margin: 2rem; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }
+      .title { color: var(--brand); }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1 class="title">Hello from HTML</h1>
+      <p id="output">Waiting...</p>
+      <button id="run">Render list</button>
+      <ul id="names"></ul>
+    </main>
+    <script type="module">
+      const names = ["Ada", "Grace", "Linus"];
+      const list = document.getElementById("names");
+      const output = document.getElementById("output");
+      document.getElementById("run")?.addEventListener("click", () => {
+        output.textContent = "Rendered.";
+        list.innerHTML = names.map((n) => `<li>Hello, ${n}!</li>`).join("");
+      });
+    </script>
+  </body>
+</html>
