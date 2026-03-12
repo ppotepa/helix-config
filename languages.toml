@@ -1,6 +1,10 @@
 # Overrides for common languages.
 # Helix merges this file with the built-in `languages.toml`.
 
+[language-server.pyright]
+command = "pyright-langserver"
+args = ["--stdio"]
+
 [[language]]
 name = "rust"
 auto-format = true
@@ -10,12 +14,14 @@ rulers = [100]
 name = "go"
 auto-format = true
 rulers = [100]
+language-servers = ["gopls", "golangci-lint-lsp"]
 
 [[language]]
 name = "python"
 auto-format = true
 rulers = [88]
 indent = { tab-width = 4, unit = "    " }
+language-servers = ["pyright", "ruff"]
 
 [[language]]
 name = "javascript"
@@ -50,11 +56,13 @@ indent = { tab-width = 2, unit = "  " }
 name = "yaml"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
+language-servers = ["yaml-language-server", "ansible-language-server"]
 
 [[language]]
 name = "toml"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
+language-servers = ["taplo"]
 
 [[language]]
 name = "bash"
@@ -65,16 +73,19 @@ indent = { tab-width = 2, unit = "  " }
 name = "lua"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
+language-servers = ["lua-language-server"]
 
 [[language]]
 name = "nix"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
+language-servers = []
 
 [[language]]
 name = "html"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
+language-servers = ["vscode-html-language-server"]
 
 [[language]]
 name = "css"
@@ -90,3 +101,4 @@ indent = { tab-width = 2, unit = "  " }
 name = "markdown"
 text-width = 100
 indent = { tab-width = 2, unit = "  " }
+language-servers = ["marksman", "markdown-oxide"]
