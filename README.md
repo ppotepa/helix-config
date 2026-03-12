@@ -16,6 +16,17 @@ Simple Helix setup stored in Git.
 ./install.sh
 ```
 
+`install.sh` now does two things:
+- links config files into `~/.config/helix`
+- installs language support tooling (LSP/format helpers) for the configured stack
+
+Useful modes:
+
+```bash
+./install.sh --link-only   # symlinks only, no tool installation
+./install.sh --strict      # stop on first install failure
+```
+
 Then in Helix:
 
 - `:config-reload` - reload config.
@@ -46,6 +57,31 @@ ln -sfn "$PWD/scripts" ~/.config/helix/scripts
 | Config ops        | Open/reload config quickly                 | Space+t, Space+R          |
 +-------------------+--------------------------------------------+---------------------------+
 ```
+
+## What install.sh installs
+
+Best-effort install for configured languages:
+
+- `npm` global (to `~/.local`):
+  - `pyright`
+  - `typescript`, `typescript-language-server`
+  - `vscode-langservers-extracted` (HTML/CSS/JSON servers)
+  - `yaml-language-server`
+  - `bash-language-server`
+  - `@ansible/ansible-language-server`
+- `pip` user:
+  - `ruff`
+- `go install`:
+  - `gopls`
+  - `golangci-lint-langserver`
+  - `golangci-lint`
+- `rustup`:
+  - `rust-analyzer`, `rustfmt`
+- `cargo install`:
+  - `marksman`
+  - `markdown-oxide`
+- system package manager (if available + `sudo`):
+  - `lua-language-server`
 
 ## Shortcut tables (WSAD profile v1)
 
