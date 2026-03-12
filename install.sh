@@ -281,7 +281,6 @@ install_toolchain() {
 
   if have cargo; then
     ensure_cargo_cmd marksman marksman
-    ensure_cargo_cmd markdown-oxide markdown-oxide
     ensure_cargo_cmd taplo taplo-cli --features lsp
     ensure_cargo_cmd stylua stylua
   else
@@ -293,6 +292,7 @@ install_toolchain() {
   # System LSPs and compilers/checkers for native stacks.
   ensure_system_cmd clangd "Install system package: clangd/clang-tools" clangd clang-tools
   ensure_system_cmd lua-language-server "Install system package: lua-language-server" lua-language-server lua-language-server-bin
+  ensure_system_cmd markdown-oxide "Install system package: markdown-oxide" markdown-oxide
   ensure_system_cmd jdtls "Install system package: jdtls" jdtls eclipse-jdtls
   if have nil || have nixd; then
     log_ok "Nix LSP already installed (nil or nixd)"

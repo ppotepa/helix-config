@@ -90,12 +90,12 @@ This includes runtime bootstrap attempts (`python3`, `node+npm`, `go`, `rustup/c
   - `rust-analyzer`, `rustfmt`
 - `cargo install`:
   - `marksman`
-  - `markdown-oxide`
   - `taplo-cli` (TOML LSP)
   - `stylua`
 - system package manager (if available + `sudo`):
   - `clangd` (C/C++)
   - `lua-language-server`
+  - `markdown-oxide` (Markdown LSP)
   - `jdtls` (Java)
   - `nil`/`nixd` (Nix LSP)
   - `php` CLI
