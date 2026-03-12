@@ -1,0 +1,27 @@
+query GetUsers($limit: Int!, $search: String) {
+  users(limit: $limit, search: $search) {
+    id
+    email
+    profile {
+      displayName
+      createdAt
+    }
+    roles
+  }
+}
+
+mutation UpdateUserRole($id: ID!, $role: String!) {
+  updateUserRole(id: $id, role: $role) {
+    id
+    roles
+    updatedAt
+  }
+}
+
+fragment UserCard on User {
+  id
+  email
+  profile {
+    displayName
+  }
+}
