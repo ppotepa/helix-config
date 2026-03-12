@@ -60,7 +60,8 @@ ln -sfn "$PWD/scripts" ~/.config/helix/scripts
 
 ## What install.sh installs
 
-Best-effort install for configured languages:
+Best-effort FULL install for configured + tested language stack.
+This includes runtime bootstrap attempts (`python3`, `node+npm`, `go`, `rustup/cargo`, `dotnet`) when missing.
 
 - `npm` global (to `~/.local`):
   - `pyright`
@@ -69,19 +70,37 @@ Best-effort install for configured languages:
   - `yaml-language-server`
   - `bash-language-server`
   - `@ansible/ansible-language-server`
+  - `dockerfile-language-server-nodejs`
+  - `@vue/language-server`
+  - `svelte-language-server`
+  - `graphql-language-service-cli`
+  - `sql-language-server`
+  - `intelephense` (PHP)
+  - `prettier`
 - `pip` user:
   - `ruff`
 - `go install`:
   - `gopls`
   - `golangci-lint-langserver`
   - `golangci-lint`
+  - `sqls`
+  - `terraform-ls`
+  - `shfmt`
 - `rustup`:
   - `rust-analyzer`, `rustfmt`
 - `cargo install`:
   - `marksman`
   - `markdown-oxide`
+  - `taplo-cli` (TOML LSP)
+  - `stylua`
 - system package manager (if available + `sudo`):
+  - `clangd` (C/C++)
   - `lua-language-server`
+  - `jdtls` (Java)
+  - `nil`/`nixd` (Nix LSP)
+  - `php` CLI
+  - Java JDK
+  - dotnet SDK + `csharp-ls` (dotnet global tool)
 
 ## Shortcut tables (WSAD profile v1)
 
