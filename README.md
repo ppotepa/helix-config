@@ -6,13 +6,14 @@ Simple Helix setup stored in Git.
 
 - `config.toml` - editor settings and keybindings.
 - `languages.toml` - language settings for common languages.
+- `scripts/` - tmux runner + language runner scripts used by `F5/F6/F7`.
+- `install.sh` - one-command local install (creates symlinks in `~/.config/helix`).
+- `helix.ui.md` - UX architecture and step-by-step workflow design.
 
-## Quick setup
+## Quick install
 
 ```bash
-mkdir -p ~/.config/helix
-ln -sfn /home/ppotepa/git/helix-config/config.toml ~/.config/helix/config.toml
-ln -sfn /home/ppotepa/git/helix-config/languages.toml ~/.config/helix/languages.toml
+./install.sh
 ```
 
 Then in Helix:
@@ -20,6 +21,31 @@ Then in Helix:
 - `:config-reload` - reload config.
 - `:config-open` - open your Helix config.
 - `:lsp-restart` - restart language servers.
+
+Manual install (if needed):
+
+```bash
+mkdir -p ~/.config/helix
+ln -sfn "$PWD/config.toml" ~/.config/helix/config.toml
+ln -sfn "$PWD/languages.toml" ~/.config/helix/languages.toml
+ln -sfn "$PWD/scripts" ~/.config/helix/scripts
+```
+
+## Main features (grouped)
+
+```text
++-------------------+--------------------------------------------+---------------------------+
+| Group             | What you get                               | Main keys                 |
++-------------------+--------------------------------------------+---------------------------+
+| WSAD movement     | Gamer-style normal/select movement         | w a s d, q e z x          |
+| Fast file access  | File + buffer pickers                      | Ctrl+p, Ctrl+b            |
+| Buffer switching  | Quick next/prev buffers                    | Tab, Shift+Tab            |
+| Code help         | Completion, hover, diagnostics             | Ctrl+space, Ctrl+k, Ctrl+d|
+| LSP navigation    | Definition/references/rename/actions       | Space+z/v/r/x             |
+| Runner (tmux)     | Dedicated RUN + BUILD panes per Helix pane | F5, F6, F7, Space+u/i/o   |
+| Config ops        | Open/reload config quickly                 | Space+t, Space+R          |
++-------------------+--------------------------------------------+---------------------------+
+```
 
 ## Shortcut tables (WSAD profile v1)
 
@@ -68,6 +94,8 @@ We will update them iteratively.
 |---|---|---|---|
 | Normal | `Ctrl+p` | Open file picker | `file_picker` |
 | Normal | `Ctrl+b` | Open buffer picker | `buffer_picker` |
+| Normal | `Tab` | Next buffer | `goto_next_buffer` |
+| Normal | `Shift+Tab` | Previous buffer | `goto_previous_buffer` |
 
 ### Search
 
@@ -93,23 +121,39 @@ We will update them iteratively.
 |---|---|---|---|
 | Insert | `Ctrl+space` | Trigger completion | `completion` |
 
+### Run/Build/Test
+
+| Mode | Keys | Action | Helix command |
+|---|---|---|---|
+| Normal | `F5` | Run in tmux RUN target | `:run-shell-command ... hx-tmux-runner.sh run %{buffer_name}` |
+| Normal | `F6` | Build in tmux BUILD target | `:run-shell-command ... hx-tmux-runner.sh build %{buffer_name}` |
+| Normal | `F7` | Test in tmux BUILD target | `:run-shell-command ... hx-tmux-runner.sh test %{buffer_name}` |
+
 ### Leader
 
 | Mode | Keys | Action | Helix command |
 |---|---|---|---|
-| Normal (`space`) | `space` + `f` | File picker | `file_picker` |
-| Normal (`space`) | `space` + `b` | Buffer picker | `buffer_picker` |
-| Normal (`space`) | `space` + `g` | Global search | `global_search` |
-| Normal (`space`) | `space` + `d` | Diagnostics picker | `diagnostics_picker` |
-| Normal (`space`) | `space` + `a` | Code action | `code_action` |
+| Normal (`space`) | `space` + `a` | Previous buffer | `goto_previous_buffer` |
+| Normal (`space`) | `space` + `d` | Next buffer | `goto_next_buffer` |
+| Normal (`space`) | `space` + `s` | Buffer picker | `buffer_picker` |
+| Normal (`space`) | `space` + `w` | File picker | `file_picker` |
+| Normal (`space`) | `space` + `f` | Global search | `global_search` |
+| Normal (`space`) | `space` + `e` | Diagnostics picker | `diagnostics_picker` |
+| Normal (`space`) | `space` + `q` | Close current split | `wclose` |
 | Normal (`space`) | `space` + `r` | Rename symbol | `rename_symbol` |
-| Normal (`space`) | `space` + `h` | Hover docs | `hover` |
+| Normal (`space`) | `space` + `x` | Code action | `code_action` |
+| Normal (`space`) | `space` + `c` | Hover docs | `hover` |
+| Normal (`space`) | `space` + `z` | Go to definition | `goto_definition` |
+| Normal (`space`) | `space` + `v` | Go to references | `goto_reference` |
+| Normal (`space`) | `space` + `u` | Toggle tmux runner window | `:run-shell-command ... hx-tmux-runner.sh toggle %{buffer_name}` |
+| Normal (`space`) | `space` + `i` | Focus tmux RUN pane | `:run-shell-command ... hx-tmux-runner.sh focus-run %{buffer_name}` |
+| Normal (`space`) | `space` + `o` | Focus tmux BUILD pane | `:run-shell-command ... hx-tmux-runner.sh focus-build %{buffer_name}` |
 
 ### Config
 
 | Mode | Keys | Action | Helix command |
 |---|---|---|---|
-| Normal (`space`) | `space` + `c` | Open Helix config | `:config-open` |
+| Normal (`space`) | `space` + `t` | Open Helix config | `:config-open` |
 | Normal (`space`) | `space` + `R` | Reload Helix config | `:config-reload` |
 
 ## Included languages
@@ -127,3 +171,17 @@ Basic settings are included for:
 1. Run `hx --health` to see missing LSP servers and formatters.
 2. Install tools only for languages you use.
 3. Adjust keybindings in `config.toml` to your keyboard habits.
+
+## Runner support
+
+`F5/F6/F7` support is configured for:
+- Rust, Go, Python
+- JavaScript, TypeScript
+- C, C++, Java, C#
+- PHP, Shell, Lua
+
+Intentionally unsupported by runner:
+- SQL and data/config languages (JSON, YAML, TOML, etc.)
+
+tmux runner controls:
+- primary: `space + u/i/o`
