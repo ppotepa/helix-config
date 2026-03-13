@@ -1,720 +1,429 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_ROOT="${XDG_CONFIG_HOME:-$HOME/.config}"
-HELIX_DIR="$CONFIG_ROOT/helix"
-STAMP="$(date +%Y%m%d-%H%M%S)"
-LINK_ONLY=0
 STRICT=0
 DOCTOR=0
+LINK_ONLY=0
+WITH_NIX=0
+REINSTALL=0
 FAILURES=()
-
-usage() {
-  cat <<'USAGE'
-Usage: ./install.sh [--link-only] [--strict] [--doctor]
-
-Options:
-  --link-only   Only create/update symlinks in ~/.config/helix.
-  --strict      Fail immediately on first unmet requirement.
-  --doctor      Run diagnostics only (no installs), return non-zero on problems.
-  -h, --help    Show this help
-USAGE
-}
 
 for arg in "$@"; do
   case "$arg" in
-    --link-only) LINK_ONLY=1 ;;
-    --strict) STRICT=1 ;;
-    --doctor) DOCTOR=1 ;;
+    --strict)   STRICT=1 ;;
+    --doctor)   DOCTOR=1 ;;
+    --link-only)LINK_ONLY=1 ;;
+    --with-nix) WITH_NIX=1 ;;
+    --reinstall) REINSTALL=1 ;;
     -h|--help)
-      usage
+      cat <<'EOF'
+Usage: ./install.sh [--strict] [--doctor] [--link-only] [--with-nix] [--reinstall]
+
+  --strict    stop on first failed step
+  --doctor    only run health checks
+  --link-only only link Helix config files
+  --with-nix  also try to install Nix LSP support (nixd / nil)
+  --reinstall force reinstall of managed Helix tooling/LSPs
+EOF
       exit 0
       ;;
     *)
-      echo "Unknown argument: $arg"
-      usage
-      exit 2
+      echo "Unknown option: $arg" >&2
+      exit 1
       ;;
   esac
 done
 
-have() {
-  command -v "$1" >/dev/null 2>&1
+(( EUID == 0 )) && {
+  echo "[error] Run this as your normal user, not with sudo/root." >&2
+  exit 1
 }
 
-tool_exists() {
-  local cmd="$1"
-  if command -v "$cmd" >/dev/null 2>&1; then
-    return 0
-  fi
+REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+HELIX_DIR="$XDG_CONFIG_HOME/helix"
+LOCAL_BIN="$HOME/.local/bin"
+NPM_PREFIX="$HOME/.local/npm"
+ENV_DIR="$XDG_CONFIG_HOME/environment.d"
+ENV_FILE="$ENV_DIR/helix-config-path.conf"
+MANAGED_PATH="$LOCAL_BIN:$NPM_PREFIX/bin:$HOME/.cargo/bin:$HOME/go/bin:/usr/local/bin:/usr/bin:/bin"
 
-  local dir
-  for dir in "$HOME/.local/bin" "$HOME/go/bin" "${CARGO_HOME:-$HOME/.cargo}/bin" "$HOME/.dotnet/tools"; do
-    if [[ -x "$dir/$cmd" ]]; then
-      return 0
-    fi
-  done
-  return 1
+say()  { printf '%s\n' "$*"; }
+ok()   { say "[ok] $*"; }
+need() { command -v "$1" >/dev/null 2>&1; }
+
+managed_need() {
+  PATH="$MANAGED_PATH" command -v "$1" >/dev/null 2>&1
 }
 
-add_failure() {
-  local msg="$1"
-  local existing
-  for existing in "${FAILURES[@]:-}"; do
-    if [[ "$existing" == "$msg" ]]; then
-      return 0
-    fi
-  done
-  FAILURES+=("$msg")
+cmd_path() {
+  command -v "$1" 2>/dev/null || true
 }
 
-fail_or_warn() {
-  local msg="$1"
-  echo "[warn] $msg"
-  add_failure "$msg"
-  if [[ "$STRICT" -eq 1 ]]; then
-    exit 1
-  fi
+fail() {
+  say "[warn] $*" >&2
+  FAILURES+=("$*")
+  (( STRICT == 1 )) && exit 1
 }
 
-log_step() {
-  echo ""
-  echo "==> $*"
-}
-
-log_ok() {
-  echo "[ok] $*"
-}
-
-sudo_available() {
-  if [[ "$(id -u)" -eq 0 ]]; then
-    return 0
-  fi
-  if ! have sudo; then
-    return 1
-  fi
-  if sudo -n true >/dev/null 2>&1; then
-    return 0
-  fi
-  [[ -t 0 ]]
-}
-
-run_as_root() {
-  if [[ "$(id -u)" -eq 0 ]]; then
-    "$@"
+run() {
+  local label="$1"; shift
+  say ""
+  say "==> $label"
+  if "$@"; then
+    ok "$label"
   else
-    sudo "$@"
+    fail "$label"
   fi
 }
 
-backup_if_needed() {
-  local dst="$1"
-  local src="$2"
-  local current=""
+ensure_line() {
+  local file="$1" line="$2"
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+  grep -Fqx "$line" "$file" || printf '%s\n' "$line" >> "$file"
+}
 
-  if [[ ! -e "$dst" && ! -L "$dst" ]]; then
-    return 0
-  fi
-
-  current="$(readlink -f "$dst" 2>/dev/null || true)"
-  if [[ "$current" == "$src" ]]; then
-    return 0
-  fi
-
-  local backup="${dst}.bak.${STAMP}"
-  mv "$dst" "$backup"
-  echo "Backed up $dst -> $backup"
+ensure_block() {
+  local file="$1" begin="$2" end="$3" body="$4"
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+  grep -Fq "$begin" "$file" && return 0
+  {
+    printf '\n%s\n' "$begin"
+    printf '%s\n' "$body"
+    printf '%s\n' "$end"
+  } >> "$file"
 }
 
 link_item() {
-  local src="$1"
-  local dst="$2"
-  backup_if_needed "$dst" "$src"
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
   ln -sfn "$src" "$dst"
-  echo "Linked $dst -> $src"
+  ok "Linked $dst -> $src"
 }
 
-ensure_path_block_in_file() {
-  local target="$1"
-  local begin="# >>> helix-config-path >>>"
-  local end="# <<< helix-config-path <<<"
-  local legacy_begin="# >>> helix-config >>>"
-  local legacy_end="# <<< helix-config <<<"
-  local tmp
+sudo_do()   { sudo "$@"; }
+pacman_pkg(){
+  if (( REINSTALL == 1 )); then
+    sudo_do pacman -S --noconfirm "$@"
+  else
+    sudo_do pacman -S --needed --noconfirm "$@"
+  fi
+}
+paru_pkg()  {
+  if (( REINSTALL == 1 )); then
+    need paru && paru -S --noconfirm --skipreview --answerclean None --answerdiff None "$@"
+  else
+    need paru && paru -S --needed --noconfirm --skipreview --answerclean None --answerdiff None "$@"
+  fi
+}
+npm_pkg()   {
+  if (( REINSTALL == 1 )); then
+    NPM_CONFIG_PREFIX="$NPM_PREFIX" npm install -g --force "$@"
+  else
+    NPM_CONFIG_PREFIX="$NPM_PREFIX" npm install -g "$@"
+  fi
+}
+pipx_pkg()  {
+  need pipx || pacman_pkg python-pipx
+  PIPX_BIN_DIR="$LOCAL_BIN" pipx install --force "$1" || PIPX_BIN_DIR="$LOCAL_BIN" pipx upgrade "$1"
+}
+dotnet_tool_pkg() {
+  mkdir -p "$LOCAL_BIN"
+  dotnet tool update --tool-path "$LOCAL_BIN" "$1" || dotnet tool install --tool-path "$LOCAL_BIN" "$1"
+}
+cargo_pkg() {
+  if (( REINSTALL == 1 )); then
+    cargo install --locked --force "$@"
+  else
+    cargo install --locked "$@"
+  fi
+}
+go_pkg()    { GOBIN="$LOCAL_BIN" go install "$1"; }
 
-  touch "$target"
+ensure_cmd() {
+  local cmd="$1" label="$2"; shift 2
+  local installer="${1:-}"
+  if (( REINSTALL == 1 )); then
+    if [[ "$installer" == "pacman_pkg" ]] && need "$cmd"; then
+      say "[info] $cmd already installed; skipping pacman reinstall in repair mode"
+      return 0
+    fi
+    run "$label" "$@"
+    need "$cmd" || fail "$cmd unavailable after reinstall"
+    return 0
+  fi
+  need "$cmd" && { ok "$cmd already installed"; return 0; }
+  run "$label" "$@"
+}
 
-  # Remove old/legacy managed blocks to avoid duplicated PATH injections.
-  tmp="$(mktemp)"
-  awk -v b1="$begin" -v e1="$end" -v b2="$legacy_begin" -v e2="$legacy_end" '
-    $0==b1 {skip=1; next}
-    $0==e1 {skip=0; next}
-    $0==b2 {skip=1; next}
-    $0==e2 {skip=0; next}
-    !skip {print}
-  ' "$target" >"$tmp"
-  mv "$tmp" "$target"
+ensure_managed_cmd() {
+  local cmd="$1" label="$2"; shift 2
+  local found=""
 
-  if grep -Fq "$begin" "$target"; then
-    log_ok "PATH block already present in $target"
+  if (( REINSTALL == 1 )); then
+    found="$(cmd_path "$cmd")"
+    [[ -n "$found" ]] && say "[info] Reinstalling $cmd from $found into managed PATH"
+    run "$label" "$@"
+    managed_need "$cmd" || fail "$cmd still unavailable in managed PATH"
     return 0
   fi
 
-  cat >>"$target" <<PATHBLOCK
-$begin
-export PATH="\$HOME/.local/bin:\$HOME/go/bin:\$HOME/.cargo/bin:\$HOME/.dotnet/tools:\$PATH"
-$end
-PATHBLOCK
-  log_ok "Added PATH block to $target"
-}
+  managed_need "$cmd" && { ok "$cmd already available in managed PATH"; return 0; }
 
-ensure_shell_path_blocks() {
-  ensure_path_block_in_file "$HOME/.profile"
-  ensure_path_block_in_file "$HOME/.bashrc"
-}
-
-ensure_environmentd_path_file() {
-  local envd_dir="$HOME/.config/environment.d"
-  local envd_file="$envd_dir/helix-config-path.conf"
-
-  mkdir -p "$envd_dir"
-  cat >"$envd_file" <<ENVFILE
-# Managed by helix-config install.sh
-PATH=$HOME/.local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.dotnet/tools:\${PATH}
-ENVFILE
-  log_ok "Wrote $envd_file"
-}
-
-ensure_tmux_path_update() {
-  local tmux_conf="$HOME/.tmux.conf"
-  local begin="# >>> helix-config-tmux-path >>>"
-  local end="# <<< helix-config-tmux-path <<<"
-  local tmp
-
-  touch "$tmux_conf"
-  tmp="$(mktemp)"
-  awk -v b="$begin" -v e="$end" '
-    $0==b {skip=1; next}
-    $0==e {skip=0; next}
-    !skip {print}
-  ' "$tmux_conf" >"$tmp"
-  mv "$tmp" "$tmux_conf"
-
-  cat >>"$tmux_conf" <<TMUXBLOCK
-$begin
-# Ensure tmux server imports PATH from client shells on attach/new-session.
-set -ga update-environment " PATH"
-$end
-TMUXBLOCK
-  log_ok "Ensured tmux PATH sync block in $tmux_conf"
-
-  if have tmux && tmux info >/dev/null 2>&1; then
-    tmux set-environment -g PATH "$PATH" || true
-    tmux source-file "$tmux_conf" || true
-    log_ok "Updated running tmux server environment"
+  found="$(cmd_path "$cmd")"
+  if [[ -n "$found" ]]; then
+    say "[info] $cmd found outside managed PATH at $found; reinstalling into managed PATH"
   fi
+
+  run "$label" "$@"
+  managed_need "$cmd" || fail "$cmd still unavailable in managed PATH"
 }
 
-ensure_bash_alias_hx() {
-  local bashrc="$HOME/.bashrc"
-  local begin="# >>> helix-config-hx-alias >>>"
-  local end="# <<< helix-config-hx-alias <<<"
-  local tmp
+ensure_all_or_install() {
+  local label="$1" installer="$2"; shift 2
+  local pkg="${@: -1}"
+  local cmds=("${@:1:$#-1}")
+  local missing=0
+  local c
 
-  touch "$bashrc"
-  tmp="$(mktemp)"
-  awk -v b="$begin" -v e="$end" '
-    $0==b {skip=1; next}
-    $0==e {skip=0; next}
-    # Remove legacy unmanaged aliases from previous installer versions.
-    $0 ~ /^[[:space:]]*alias[[:space:]]+hx='\''helix'\''[[:space:]]*$/ {next}
-    !skip {print}
-  ' "$bashrc" >"$tmp"
-  mv "$tmp" "$bashrc"
-
-  cat >>"$bashrc" <<ALIASBLOCK
-$begin
-alias hx='helix'
-$end
-ALIASBLOCK
-  log_ok "Ensured hx alias in $bashrc"
-}
-
-ensure_keyboard_flow_control() {
-  local bashrc="$HOME/.bashrc"
-  local begin="# >>> helix-config-xonxoff >>>"
-  local end="# <<< helix-config-xonxoff <<<"
-  touch "$bashrc"
-  if grep -Fq "$begin" "$bashrc"; then
-    log_ok "Flow-control fix already applied"
-    return
+  if (( REINSTALL == 1 )); then
+    run "$label" "$installer" "$pkg"
+    for c in "${cmds[@]}"; do
+      need "$c" || fail "$c unavailable after reinstall"
+    done
+    return 0
   fi
-  cat >>"$bashrc" <<FLOW
-$begin
-stty -ixon
-$end
-FLOW
-  log_ok "Disabled terminal flow control in $bashrc"
+  for c in "${cmds[@]}"; do
+    need "$c" || missing=1
+  done
+  (( missing == 0 )) && { ok "$label already installed"; return 0; }
+  run "$label" "$installer" "$pkg"
 }
 
-ensure_hx_shim() {
-  local shim_dir="$HOME/.local/bin"
-  local shim="$shim_dir/hx"
+ensure_all_or_install_managed() {
+  local label="$1" installer="$2"; shift 2
+  local pkg="${@: -1}"
+  local cmds=("${@:1:$#-1}")
+  local missing=0
+  local cmd
 
-  if have hx; then
-    log_ok "hx command already available"
+  if (( REINSTALL == 1 )); then
+    for cmd in "${cmds[@]}"; do
+      local found=""
+      found="$(cmd_path "$cmd")"
+      [[ -n "$found" ]] && say "[info] Reinstalling $cmd from $found into managed PATH"
+    done
+
+    run "$label" "$installer" "$pkg"
+
+    for cmd in "${cmds[@]}"; do
+      managed_need "$cmd" || fail "$cmd still unavailable in managed PATH"
+    done
     return 0
   fi
 
-  if ! have helix; then
-    fail_or_warn "Cannot create hx shim because helix binary is missing"
-    return 1
-  fi
+  for cmd in "${cmds[@]}"; do
+    managed_need "$cmd" || missing=1
+  done
+  (( missing == 0 )) && { ok "$label already installed in managed PATH"; return 0; }
 
-  mkdir -p "$shim_dir"
-  cat >"$shim" <<'SHIM'
+  for cmd in "${cmds[@]}"; do
+    local found=""
+    found="$(cmd_path "$cmd")"
+    if [[ -n "$found" ]] && ! managed_need "$cmd"; then
+      say "[info] $cmd found outside managed PATH at $found; reinstalling into managed PATH"
+    fi
+  done
+
+  run "$label" "$installer" "$pkg"
+
+  for cmd in "${cmds[@]}"; do
+    managed_need "$cmd" || fail "$cmd still unavailable in managed PATH"
+  done
+}
+
+setup_paths() {
+  mkdir -p "$LOCAL_BIN" "$NPM_PREFIX" "$ENV_DIR"
+
+  local path_body="export PATH=\"$LOCAL_BIN:$NPM_PREFIX/bin:$HOME/.cargo/bin:$HOME/go/bin:\$PATH\""
+  ensure_block "$HOME/.profile" "# >>> helix-config path >>>" "# <<< helix-config path <<<" "$path_body"
+  ensure_block "$HOME/.bashrc"  "# >>> helix-config path >>>" "# <<< helix-config path <<<" "$path_body"
+  ensure_line  "$HOME/.bashrc"  "stty -ixon 2>/dev/null || true"
+
+  cat > "$ENV_FILE" <<EOF
+PATH=$MANAGED_PATH
+EOF
+  ok "PATH configured"
+}
+
+maybe_set_helix_runtime() {
+  local d=""
+  for cand in /usr/lib/helix/runtime /usr/share/helix/runtime; do
+    [[ -d "$cand" ]] && d="$cand" && break
+  done
+  [[ -z "$d" ]] && return 0
+  ensure_line "$HOME/.profile" "export HELIX_RUNTIME=\"$d\""
+  ensure_line "$HOME/.bashrc"  "export HELIX_RUNTIME=\"$d\""
+  ok "HELIX_RUNTIME set to $d"
+}
+
+maybe_make_hx_shim() {
+  if need hx; then
+    ok "hx command already available"
+    return 0
+  fi
+  if need helix; then
+    mkdir -p "$LOCAL_BIN"
+    cat > "$LOCAL_BIN/hx" <<'EOF'
 #!/usr/bin/env bash
 exec helix "$@"
-SHIM
-  chmod +x "$shim"
-  log_ok "Created hx shim at $shim"
-}
-
-install_system_pkg() {
-  local pkg="$1"
-  if ! sudo_available; then
-    return 1
-  fi
-
-  if have pacman; then
-    pacman -Si "$pkg" >/dev/null 2>&1 || return 1
-    run_as_root pacman -S --needed --noconfirm "$pkg"
-  elif have apt-get; then
-    run_as_root apt-get install -y "$pkg"
-  elif have dnf; then
-    run_as_root dnf install -y "$pkg"
-  elif have zypper; then
-    run_as_root zypper --non-interactive install "$pkg"
+EOF
+    chmod +x "$LOCAL_BIN/hx"
+    ok "Created hx shim at $LOCAL_BIN/hx"
   else
-    return 1
+    fail "hx/helix not available"
   fi
 }
 
-install_system_pkg_any() {
-  local pkg
-  for pkg in "$@"; do
-    if install_system_pkg "$pkg"; then
-      return 0
-    fi
-  done
-  return 1
+sync_tmux_path() {
+  need tmux || return 0
+  tmux start-server >/dev/null 2>&1 || true
+  tmux set-environment -g PATH "$LOCAL_BIN:$NPM_PREFIX/bin:$HOME/.cargo/bin:$HOME/go/bin:$PATH" >/dev/null 2>&1 || true
+  ok "tmux PATH synced"
 }
 
-install_aur_pkg_any() {
-  local pkg
-  if ! have yay; then
-    return 1
+install_core() {
+  (( REINSTALL == 1 )) && say "[info] Reinstall mode enabled: forcing reinstall of managed tooling"
+  ensure_cmd helix   "Install pacman: helix"    pacman_pkg helix
+  ensure_cmd tmux    "Install pacman: tmux"     pacman_pkg tmux
+  ensure_cmd rg      "Install pacman: ripgrep"  pacman_pkg ripgrep
+  ensure_cmd fd      "Install pacman: fd"       pacman_pkg fd
+  ensure_cmd python3 "Install pacman: python"   pacman_pkg python
+  ensure_cmd npm     "Install pacman: npm"      pacman_pkg npm
+  ensure_cmd go      "Install pacman: go"       pacman_pkg go
+  ensure_cmd cargo   "Install pacman: cargo"    pacman_pkg cargo
+  ensure_cmd rustup  "Install pacman: rustup"   pacman_pkg rustup
+  ensure_cmd pipx    "Install pacman: pipx"     pacman_pkg python-pipx
+  ensure_cmd dotnet  "Install pacman: dotnet-sdk" pacman_pkg dotnet-sdk
+
+  NPM_CONFIG_PREFIX="$NPM_PREFIX" npm config set prefix "$NPM_PREFIX" >/dev/null 2>&1 || true
+  maybe_make_hx_shim
+  maybe_set_helix_runtime
+  sync_tmux_path
+}
+
+install_lang_servers() {
+   ensure_managed_cmd pyright-langserver         "Install npm: pyright"                         npm_pkg pyright
+   ensure_managed_cmd typescript-language-server "Install npm: typescript-language-server"      npm_pkg typescript-language-server
+   ensure_managed_cmd tsc                        "Install npm: typescript"                      npm_pkg typescript
+   ensure_all_or_install_managed "Install npm: vscode-langservers-extracted" npm_pkg \
+     vscode-html-language-server vscode-css-language-server vscode-json-language-server vscode-langservers-extracted
+   ensure_managed_cmd yaml-language-server       "Install npm: yaml-language-server"            npm_pkg yaml-language-server
+   ensure_managed_cmd ansible-language-server    "Install npm: @ansible/ansible-language-server" npm_pkg @ansible/ansible-language-server
+   ensure_managed_cmd bash-language-server       "Install npm: bash-language-server"            npm_pkg bash-language-server
+   ensure_managed_cmd docker-langserver          "Install npm: dockerfile-language-server-nodejs" npm_pkg dockerfile-language-server-nodejs
+   ensure_managed_cmd vue-language-server        "Install npm: @vue/language-server"            npm_pkg @vue/language-server
+   ensure_managed_cmd svelteserver               "Install npm: svelte-language-server"          npm_pkg svelte-language-server
+   ensure_managed_cmd graphql-lsp                "Install npm: graphql-language-service-cli"    npm_pkg graphql-language-service-cli
+   ensure_managed_cmd sql-language-server        "Install npm: sql-language-server"             npm_pkg sql-language-server
+   ensure_managed_cmd intelephense               "Install npm: intelephense"                    npm_pkg intelephense
+   ensure_managed_cmd prettier                   "Install npm: prettier"                        npm_pkg prettier
+
+  ensure_cmd ruff                       "Install pipx: ruff"                           pipx_pkg ruff
+  ensure_managed_cmd csharp-ls          "Install dotnet tool: csharp-ls"               dotnet_tool_pkg csharp-ls
+  ensure_cmd clangd                     "Install pacman: clang"                        pacman_pkg clang
+  ensure_cmd lua-language-server        "Install pacman: lua-language-server"          pacman_pkg lua-language-server
+  ensure_cmd jdtls                      "Install pacman: jdtls"                        pacman_pkg jdtls
+  ensure_cmd shfmt                      "Install pacman: shfmt"                        pacman_pkg shfmt
+  ensure_cmd terraform-ls               "Install pacman: terraform-ls"                 pacman_pkg terraform-ls
+  ensure_cmd golangci-lint              "Install pacman: golangci-lint"                pacman_pkg golangci-lint
+  ensure_cmd haskell-language-server-wrapper "Install pacman: haskell-language-server" pacman_pkg haskell-language-server
+  ensure_cmd ruby-lsp                   "Install pacman: ruby-lsp"                     pacman_pkg ruby-lsp
+  ensure_cmd tinymist                   "Install pacman: tinymist"                     pacman_pkg tinymist
+  ensure_cmd zls                        "Install pacman: zls"                          pacman_pkg zls
+  ensure_cmd dart                       "Install pacman: dart"                         pacman_pkg dart
+  ensure_cmd taplo                      "Install pacman: taplo-cli"                    pacman_pkg taplo-cli
+  ensure_cmd markdown-oxide             "Install pacman: markdown-oxide"               pacman_pkg markdown-oxide
+  ensure_cmd marksman                   "Install pacman: marksman"                     pacman_pkg marksman
+
+  if need rustup; then
+    run "Install rustup components: rust-analyzer + rustfmt" rustup component add rust-analyzer rustfmt
+  else
+    fail "rustup missing; cannot install rust-analyzer/rustfmt"
   fi
-  for pkg in "$@"; do
-    if yay -Si "$pkg" >/dev/null 2>&1; then
-      if yay -S --needed --noconfirm "$pkg"; then
-        return 0
-      fi
-    fi
-  done
-  return 1
+
+  ensure_cmd gopls                      "Install go: gopls"                            go_pkg golang.org/x/tools/gopls@latest
+  ensure_cmd golangci-lint-langserver   "Install go: golangci-lint-langserver"         go_pkg github.com/nametake/golangci-lint-langserver@latest
+  ensure_cmd sqls                       "Install go: sqls"                             go_pkg github.com/sqls-server/sqls@latest
+
+  ensure_cmd stylua                     "Install cargo: stylua"                        cargo_pkg stylua
 }
 
-ensure_system_cmd() {
-  local cmd="$1"
-  local label="$2"
-  shift 2
+install_nix_support() {
+  (( WITH_NIX == 0 )) && { ok "Skipping Nix LSP support"; return 0; }
 
-  if tool_exists "$cmd"; then
-    log_ok "$cmd already installed"
+  if need nixd; then
+    ok "nixd already installed"
     return 0
   fi
 
-  log_step "$label"
-
-  if install_system_pkg_any "$@" && tool_exists "$cmd"; then
-    log_ok "$label"
-    return 0
+  if need paru; then
+    run "Install AUR: nixd" paru_pkg nixd
+    need nixd && return 0
   fi
 
-  if have pacman && have yay; then
-    if install_aur_pkg_any "$@" && tool_exists "$cmd"; then
-      log_ok "$label (AUR)"
-      return 0
-    fi
+  if need nix; then
+    run "Install nil via Nix" nix profile install github:oxalica/nil
+    need nil && return 0
   fi
 
-  fail_or_warn "$label"
+  fail "Nix LSP support unavailable (nix repo/mirror issue or nix missing)"
 }
 
-ensure_npm_cmd() {
-  local cmd="$1"
-  local pkg="$2"
-
-  if tool_exists "$cmd"; then
-    log_ok "$cmd already installed"
-    return 0
-  fi
-
-  log_step "Install npm: $pkg"
-  if npm install -g --prefix "$HOME/.local" "$pkg" && tool_exists "$cmd"; then
-    log_ok "Install npm: $pkg"
-  else
-    fail_or_warn "Install npm: $pkg"
-  fi
+verify_links() {
+  [[ -e "$HELIX_DIR/config.toml"    ]] || fail "Missing $HELIX_DIR/config.toml"
+  [[ -e "$HELIX_DIR/languages.toml" ]] || fail "Missing $HELIX_DIR/languages.toml"
+  [[ -e "$HELIX_DIR/scripts"        ]] || fail "Missing $HELIX_DIR/scripts"
 }
 
-ensure_go_cmd() {
-  local cmd="$1"
-  local module="$2"
-
-  if tool_exists "$cmd"; then
-    log_ok "$cmd already installed"
-    return 0
-  fi
-
-  log_step "Install go: $cmd"
-  if go install "${module}@latest" && tool_exists "$cmd"; then
-    log_ok "Install go: $cmd"
-  else
-    fail_or_warn "Install go: $cmd"
-  fi
-}
-
-ensure_cargo_cmd() {
-  local cmd="$1"
-  shift
-
-  if tool_exists "$cmd"; then
-    log_ok "$cmd already installed"
-    return 0
-  fi
-
-  log_step "Install cargo: $cmd"
-  if cargo install --locked "$@" && tool_exists "$cmd"; then
-    log_ok "Install cargo: $cmd"
-  else
-    fail_or_warn "Install cargo: $cmd"
-  fi
-}
-
-ensure_dotnet_tool() {
-  local cmd="$1"
-  local pkg="$2"
-
-  if tool_exists "$cmd"; then
-    log_ok "$cmd already installed"
-    return 0
-  fi
-
-  log_step "Install dotnet tool: $pkg"
-  if dotnet tool update --global "$pkg" || dotnet tool install --global "$pkg"; then
-    if tool_exists "$cmd"; then
-      log_ok "Install dotnet tool: $pkg"
-      return 0
-    fi
-  fi
-  fail_or_warn "Install dotnet tool: $pkg"
-}
-
-ensure_one_of_cmds() {
-  local label="$1"
-  local cmd_a="$2"
-  local cmd_b="$3"
-  shift 3
-
-  if tool_exists "$cmd_a" || tool_exists "$cmd_b"; then
-    log_ok "$label already installed"
-    return 0
-  fi
-
-  log_step "$label"
-
-  if install_system_pkg_any "$@" && (tool_exists "$cmd_a" || tool_exists "$cmd_b"); then
-    log_ok "$label"
-    return 0
-  fi
-
-  if have pacman && have yay; then
-    if install_aur_pkg_any "$@" && (tool_exists "$cmd_a" || tool_exists "$cmd_b"); then
-      log_ok "$label (AUR)"
-      return 0
-    fi
-  fi
-
-  fail_or_warn "$label"
-}
-
-install_toolchain() {
-  echo ""
-  echo "Installing FULL language support toolchain..."
-
-  ensure_shell_path_blocks
-  ensure_environmentd_path_file
-  ensure_bash_alias_hx
-  ensure_keyboard_flow_control
-
-  # Core runtime and editor dependencies.
-  ensure_system_cmd helix "Install helix" helix
-  ensure_hx_shim
-  ensure_system_cmd tmux "Install tmux" tmux
-  ensure_tmux_path_update
-  ensure_system_cmd rg "Install ripgrep" ripgrep
-  ensure_system_cmd fd "Install fd" fd fd-find
-  ensure_system_cmd python3 "Install Python runtime" python python3
-  ensure_system_cmd npm "Install Node/npm runtime" npm nodejs-lts nodejs
-  ensure_system_cmd go "Install Go runtime" go golang
-  ensure_system_cmd cargo "Install Rust toolchain" cargo rust
-
-  # npm-based toolchain.
-  if have npm; then
-    ensure_npm_cmd pyright-langserver pyright
-    ensure_npm_cmd typescript-language-server typescript-language-server
-    ensure_npm_cmd tsc typescript
-    ensure_npm_cmd vscode-html-language-server vscode-langservers-extracted
-    ensure_npm_cmd vscode-css-language-server vscode-langservers-extracted
-    ensure_npm_cmd vscode-json-language-server vscode-langservers-extracted
-    ensure_npm_cmd yaml-language-server yaml-language-server
-    ensure_npm_cmd ansible-language-server @ansible/ansible-language-server
-    ensure_npm_cmd bash-language-server bash-language-server
-    ensure_npm_cmd docker-langserver dockerfile-language-server-nodejs
-    ensure_npm_cmd vue-language-server @vue/language-server
-    ensure_npm_cmd svelteserver svelte-language-server
-    ensure_npm_cmd graphql-lsp graphql-language-service-cli
-    ensure_npm_cmd sql-language-server sql-language-server
-    ensure_npm_cmd intelephense intelephense
-    ensure_npm_cmd prettier prettier
-  else
-    fail_or_warn "npm toolchain unavailable"
-  fi
-
-  # Python tools.
-  if have python3; then
-    if have ruff; then
-      log_ok "ruff already installed"
-    else
-      log_step "Install pip: ruff"
-      if python3 -m pip install --user --upgrade ruff && have ruff; then
-        log_ok "Install pip: ruff"
-      else
-        fail_or_warn "Install pip: ruff"
-      fi
-    fi
-  else
-    fail_or_warn "Python tools unavailable"
-  fi
-
-  # Go tools.
-  if have go; then
-    ensure_go_cmd gopls golang.org/x/tools/gopls
-    ensure_go_cmd golangci-lint-langserver github.com/nametake/golangci-lint-langserver
-    ensure_go_cmd golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
-    ensure_go_cmd sqls github.com/sqls-server/sqls
-    ensure_go_cmd terraform-ls github.com/hashicorp/terraform-ls
-    ensure_go_cmd shfmt mvdan.cc/sh/v3/cmd/shfmt
-  else
-    fail_or_warn "Go tools unavailable"
-  fi
-
-  # Rust/Cargo tools.
-  if have rustup; then
-    log_step "Install rustup components: rust-analyzer + rustfmt"
-    if rustup component add rust-analyzer rustfmt && have rust-analyzer; then
-      log_ok "Install rustup components: rust-analyzer + rustfmt"
-    else
-      fail_or_warn "Install rustup components: rust-analyzer + rustfmt"
-    fi
-  else
-    fail_or_warn "rustup unavailable"
-  fi
-
-  if have cargo; then
-    ensure_cargo_cmd marksman marksman
-    ensure_cargo_cmd markdown-oxide markdown-oxide
-    ensure_cargo_cmd taplo taplo-cli --features lsp
-    ensure_cargo_cmd stylua stylua
-  else
-    fail_or_warn "Cargo tools unavailable"
-  fi
-
-  # System LSP / runtimes for additional stacks.
-  ensure_system_cmd clangd "Install clangd" clangd clang-tools
-  ensure_system_cmd lua-language-server "Install lua-language-server" lua-language-server lua-language-server-bin
-  ensure_system_cmd jdtls "Install jdtls" jdtls jdtls-bin eclipse-jdtls
-  ensure_one_of_cmds "Install Nix LSP (nil or nixd)" nil nixd nixd nil nixd-bin nixd-git nil-language-server nil-git
-  ensure_system_cmd php "Install php" php
-  ensure_system_cmd java "Install Java runtime" java openjdk-21-jdk openjdk-17-jdk java-21-openjdk java-17-openjdk
-  ensure_system_cmd dotnet "Install dotnet SDK" dotnet dotnet-sdk
-
-  if have dotnet; then
-    ensure_dotnet_tool csharp-ls csharp-ls
-  else
-    fail_or_warn "dotnet unavailable for csharp-ls"
-  fi
-}
-
-verify_final_state() {
-  local missing=()
-  local cmd
-  local required=(
-    hx tmux rg python3 npm go cargo
-    pyright-langserver typescript-language-server tsc
-    vscode-html-language-server vscode-css-language-server vscode-json-language-server
-    yaml-language-server ansible-language-server bash-language-server
-    docker-langserver vue-language-server svelteserver graphql-lsp sql-language-server intelephense prettier
-    ruff gopls golangci-lint-langserver golangci-lint sqls terraform-ls shfmt
-    rust-analyzer marksman markdown-oxide taplo stylua
-    clangd lua-language-server jdtls php java dotnet csharp-ls
-  )
-
-  for cmd in "${required[@]}"; do
-    if ! tool_exists "$cmd"; then
-      missing+=("$cmd")
-    fi
-  done
-
-  if ! tool_exists nil && ! tool_exists nixd; then
-    missing+=("nil|nixd")
-  fi
-
-  if [[ "${#missing[@]}" -eq 0 ]]; then
-    log_ok "Final verification passed"
-    return 0
-  fi
-
-  echo ""
-  echo "Missing commands after installation:"
-  for cmd in "${missing[@]}"; do
-    echo "- $cmd"
-  done
-
-  add_failure "final verification"
-  if [[ "$STRICT" -eq 1 ]]; then
-    exit 1
-  fi
-}
-
-refresh_helix_state() {
-  if ! pgrep -x helix >/dev/null 2>&1; then
-    log_ok "No Helix server running; skipping reload"
-    return
-  fi
-  log_step "Reload Helix config + restart LSP"
-  if hx --config-reload >/dev/null 2>&1; then
-    log_ok "Config reload command executed"
-  else
-    fail_or_warn "hx --config-reload failed"
-  fi
-  if hx --lsp-restart >/dev/null 2>&1; then
-    log_ok "LSP restart command executed"
-  else
-    fail_or_warn "hx --lsp-restart failed"
-  fi
-}
-
-verify_hx_health_for_configured_languages() {
-  local out
-  local line
-  local lang
-  local marker
-  local bad=0
-  local wanted_ok=(
-    bash go html css scss json jsx tsx
-    lua markdown python rust yaml
-  )
-  local wanted_none=(
-    nix toml
-  )
-
-  if ! tool_exists hx; then
-    fail_or_warn "hx binary missing for health verification"
-    return
-  fi
-
-  out="$(hx --health 2>/dev/null | sed -E 's/\x1B\\[[0-9;]*[mK]//g')"
-
-  for lang in "${wanted_ok[@]}"; do
-    line="$(printf '%s\n' "$out" | awk -v l="$lang" '$1==l {print; exit}')"
-    if [[ -z "$line" ]]; then
-      echo "[warn] hx --health: missing row for language '$lang'"
-      bad=1
-      continue
-    fi
-    marker="$(printf '%s\n' "$line" | awk '{print $2}')"
-    if [[ "$marker" != "✓" ]]; then
-      echo "[warn] hx --health: language '$lang' LSP not ready (marker=$marker)"
-      bad=1
-    fi
-  done
-
-  for lang in "${wanted_none[@]}"; do
-    line="$(printf '%s\n' "$out" | awk -v l="$lang" '$1==l {print; exit}')"
-    if [[ -z "$line" ]]; then
-      echo "[warn] hx --health: missing row for language '$lang'"
-      bad=1
-      continue
-    fi
-    marker="$(printf '%s\n' "$line" | awk '{print $2}')"
-    if [[ "$marker" != "None" ]]; then
-      echo "[warn] hx --health: language '$lang' expected no LSP, got marker=$marker"
-      bad=1
-    fi
-  done
-
-  if [[ "$bad" -eq 0 ]]; then
-    log_ok "hx --health verification passed for configured languages"
-    return 0
-  fi
-
-  add_failure "hx health verification"
-  if [[ "$STRICT" -eq 1 ]]; then
-    exit 1
-  fi
+doctor() {
+  say ""
+  say "==> Helix health"
+  say "[info] Running hx --health with managed PATH"
+  env PATH="$MANAGED_PATH" hx --health || true
 }
 
 mkdir -p "$HELIX_DIR"
-link_item "$REPO_DIR/config.toml" "$HELIX_DIR/config.toml"
+link_item "$REPO_DIR/config.toml"    "$HELIX_DIR/config.toml"
 link_item "$REPO_DIR/languages.toml" "$HELIX_DIR/languages.toml"
-link_item "$REPO_DIR/scripts" "$HELIX_DIR/scripts"
+[[ -d "$REPO_DIR/scripts" ]] && link_item "$REPO_DIR/scripts" "$HELIX_DIR/scripts"
 
-if [[ "$DOCTOR" -eq 1 ]]; then
-  verify_final_state
-  verify_hx_health_for_configured_languages
-elif [[ "$LINK_ONLY" -eq 0 ]]; then
-  install_toolchain
-  verify_final_state
-  verify_hx_health_for_configured_languages
-  refresh_helix_state
+verify_links
+
+if (( DOCTOR == 1 )); then
+  doctor
+elif (( LINK_ONLY == 0 )); then
+  setup_paths
+  install_core
+  install_lang_servers
+  install_nix_support
+  doctor
 fi
 
-cat <<'EOF_MSG'
+say ""
+say "Install complete."
+say "Open a new shell, then run:"
+say "  hx --health"
+say "  hx <project>"
+(( REINSTALL == 1 )) && say "Reinstall mode was used; existing managed LSP/tooling was refreshed."
 
-Install complete.
-Next steps:
-1) Restart shell (or source ~/.bashrc)
-2) Start Helix: hx <project>
-3) Run :config-reload
-4) Run :lsp-restart
-5) Check health: hx --health
-EOF_MSG
-
-if [[ "${#FAILURES[@]}" -gt 0 ]]; then
-  echo ""
-  echo "Some steps failed:"
-  for item in "${FAILURES[@]}"; do
-    echo "- $item"
+if (( ${#FAILURES[@]} > 0 )); then
+  say ""
+  say "Failed steps:"
+  for f in "${FAILURES[@]}"; do
+    say "  - $f"
   done
-  if [[ "$STRICT" -eq 0 ]]; then
-    echo "Re-run with --strict to stop on first failure."
-  fi
-fi
-
-if [[ "${#FAILURES[@]}" -gt 0 ]]; then
   exit 1
 fi

@@ -5,6 +5,32 @@
 command = "pyright-langserver"
 args = ["--stdio"]
 
+[language-server.csharp-ls]
+command = "csharp-ls"
+
+[language-server.taplo]
+command = "taplo"
+
+[language-server.sqls]
+command = "sqls"
+
+[language-server.ruby-lsp]
+command = "ruby-lsp"
+
+[language-server.haskell-language-server-wrapper]
+command = "haskell-language-server-wrapper"
+args = ["--lsp"]
+
+[language-server.dart-language-server]
+command = "dart"
+args = ["language-server", "--protocol=lsp"]
+
+[language-server.tinymist]
+command = "tinymist"
+
+[language-server.zls]
+command = "zls"
+
 [[language]]
 name = "rust"
 auto-format = true
@@ -62,7 +88,7 @@ language-servers = ["yaml-language-server", "ansible-language-server"]
 name = "toml"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
-language-servers = []
+language-servers = ["taplo"]
 
 [[language]]
 name = "bash"
@@ -79,7 +105,6 @@ language-servers = ["lua-language-server"]
 name = "nix"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
-language-servers = []
 
 [[language]]
 name = "html"
@@ -102,3 +127,38 @@ name = "markdown"
 text-width = 100
 indent = { tab-width = 2, unit = "  " }
 language-servers = ["marksman", "markdown-oxide"]
+
+[[language]]
+name = "c-sharp"
+auto-format = true
+language-servers = ["csharp-ls"]
+
+[[language]]
+name = "sql"
+auto-format = true
+language-servers = ["sqls"]
+
+[[language]]
+name = "ruby"
+auto-format = true
+language-servers = ["ruby-lsp"]
+
+[[language]]
+name = "haskell"
+auto-format = true
+language-servers = ["haskell-language-server-wrapper"]
+
+[[language]]
+name = "dart"
+auto-format = true
+language-servers = ["dart-language-server"]
+
+[[language]]
+name = "typst"
+auto-format = true
+language-servers = ["tinymist"]
+
+[[language]]
+name = "zig"
+auto-format = true
+language-servers = ["zls"]

@@ -15,12 +15,34 @@ Helix config with WSAD navigation, tmux runner, and one-script setup/doctor.
 ./install.sh --strict
 ```
 
+If Helix still has only syntax highlighting and no LSP/completion, run a forced repair:
+
+```bash
+./install.sh --reinstall --strict
+```
+
+On Arch/CachyOS, repair mode reuses already-installed `pacman` packages and forces refresh mainly for managed LSP/tooling, so broken mirrors on unrelated packages do not block recovery.
+
 Other modes:
 
 ```bash
 ./install.sh --link-only
 ./install.sh --doctor
+./install.sh --reinstall --strict
 ```
+
+## Expanded language coverage
+
+This setup aims to be a broad Helix bootstrap for popular languages, not just a minimal personal config.
+
+First-class tooling is wired for:
+
+- C, C++, C#, Go, Rust, Java, PHP, Python, Ruby, Haskell, Dart, Zig
+- JavaScript, TypeScript, JSX, TSX, Vue, Svelte
+- HTML, CSS, SCSS, JSON, YAML, TOML, GraphQL, SQL, Markdown
+- Bash, Lua, Dockerfile, Terraform, Typst
+
+Nix support remains optional via `./install.sh --with-nix`.
 
 ## Current keymap
 
@@ -76,4 +98,6 @@ Other modes:
 - `hx` alias/shim and tmux PATH sync.
 - `stty -ixon` fix for `Ctrl+s`.
 - Language tooling (npm/go/cargo/rustup/system where available).
-- Health checks (`--doctor`) for required tools + configured language LSP readiness.
+- C# support via `csharp-ls` (`dotnet-sdk` + dotnet tool install).
+- Additional first-class tooling for Ruby, Haskell, Dart, Zig, Typst, TOML, SQL, and Markdown.
+- Health checks (`--doctor`) using the managed Helix PATH, so misplaced global LSP installs are caught and repaired.
