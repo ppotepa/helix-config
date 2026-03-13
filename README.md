@@ -25,10 +25,11 @@ Other modes:
 ## Current keymap
 
 ### Normal mode
-
 - Move: `w a s d`
 - Word move: `q e z x`
 - Save: `Ctrl+s`
+- Enter insert: `Ctrl+r`, select: `Ctrl+e`
+- Clipboard: `Ctrl+q` copy selection, `Ctrl+w` paste, `Ctrl+x` cut/delete
 - File/buffer picker: `Ctrl+p`, `Ctrl+b`
 - Search/diagnostics/hover: `Ctrl+f`, `Ctrl+d`, `Ctrl+k`
 - Enter insert/select: `Ctrl+r`, `Ctrl+e`
@@ -57,6 +58,7 @@ Other modes:
 - LSP: `Space+a` code action, `Space+r` rename, `Space+z` definition, `Space+v` references, `Space+c` hover
 - Runner: `Space+u` toggle, `Space+i` focus run pane, `Space+o` focus build pane
 - Config: `Space+t` open config, `Space+R` reload config
+- Select-mode clipboard: `Ctrl+c` copy, `Ctrl+x` cut/delete, `Ctrl+v` paste; undo is `Ctrl+z`
 
 ## Runner behavior
 
