@@ -186,6 +186,36 @@ ENVFILE
   log_ok "Wrote $envd_file"
 }
 
+ensure_tmux_path_update() {
+  local tmux_conf="$HOME/.tmux.conf"
+  local begin="# >>> helix-config-tmux-path >>>"
+  local end="# <<< helix-config-tmux-path <<<"
+  local tmp
+
+  touch "$tmux_conf"
+  tmp="$(mktemp)"
+  awk -v b="$begin" -v e="$end" '
+    $0==b {skip=1; next}
+    $0==e {skip=0; next}
+    !skip {print}
+  ' "$tmux_conf" >"$tmp"
+  mv "$tmp" "$tmux_conf"
+
+  cat >>"$tmux_conf" <<TMUXBLOCK
+$begin
+# Ensure tmux server imports PATH from client shells on attach/new-session.
+set -ga update-environment " PATH"
+$end
+TMUXBLOCK
+  log_ok "Ensured tmux PATH sync block in $tmux_conf"
+
+  if have tmux && tmux info >/dev/null 2>&1; then
+    tmux set-environment -g PATH "$PATH" || true
+    tmux source-file "$tmux_conf" || true
+    log_ok "Updated running tmux server environment"
+  fi
+}
+
 ensure_bash_alias_hx() {
   local bashrc="$HOME/.bashrc"
   local begin="# >>> helix-config-hx-alias >>>"
@@ -209,6 +239,23 @@ alias hx='helix'
 $end
 ALIASBLOCK
   log_ok "Ensured hx alias in $bashrc"
+}
+
+ensure_keyboard_flow_control() {
+  local bashrc="$HOME/.bashrc"
+  local begin="# >>> helix-config-xonxoff >>>"
+  local end="# <<< helix-config-xonxoff <<<"
+  touch "$bashrc"
+  if grep -Fq "$begin" "$bashrc"; then
+    log_ok "Flow-control fix already applied"
+    return
+  fi
+  cat >>"$bashrc" <<FLOW
+$begin
+stty -ixon
+$end
+FLOW
+  log_ok "Disabled terminal flow control in $bashrc"
 }
 
 ensure_hx_shim() {
@@ -411,11 +458,13 @@ install_toolchain() {
   ensure_shell_path_blocks
   ensure_environmentd_path_file
   ensure_bash_alias_hx
+  ensure_keyboard_flow_control
 
   # Core runtime and editor dependencies.
   ensure_system_cmd helix "Install helix" helix
   ensure_hx_shim
   ensure_system_cmd tmux "Install tmux" tmux
+  ensure_tmux_path_update
   ensure_system_cmd rg "Install ripgrep" ripgrep
   ensure_system_cmd fd "Install fd" fd fd-find
   ensure_system_cmd python3 "Install Python runtime" python python3
@@ -551,6 +600,24 @@ verify_final_state() {
   fi
 }
 
+refresh_helix_state() {
+  if ! pgrep -x helix >/dev/null 2>&1; then
+    log_ok "No Helix server running; skipping reload"
+    return
+  fi
+  log_step "Reload Helix config + restart LSP"
+  if hx --config-reload >/dev/null 2>&1; then
+    log_ok "Config reload command executed"
+  else
+    fail_or_warn "hx --config-reload failed"
+  fi
+  if hx --lsp-restart >/dev/null 2>&1; then
+    log_ok "LSP restart command executed"
+  else
+    fail_or_warn "hx --lsp-restart failed"
+  fi
+}
+
 verify_hx_health_for_configured_languages() {
   local out
   local line
@@ -623,6 +690,7 @@ elif [[ "$LINK_ONLY" -eq 0 ]]; then
   install_toolchain
   verify_final_state
   verify_hx_health_for_configured_languages
+  refresh_helix_state
 fi
 
 cat <<'EOF_MSG'

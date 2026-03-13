@@ -19,9 +19,12 @@ def main() -> None:
     for line in messages:
         print(line)
 
-    # Uncomment for diagnostics test:
-    # reveal_type(messages)
-    # print(undefined_name)
+    greeter.__annotations__.clear()
+
+
+# Uncomment for diagnostics test:
+# reveal_type(messages)
+# print(undefined_name)
 
 
 if __name__ == "__main__":

@@ -1,242 +1,77 @@
 # helix-config
 
-Simple Helix setup stored in Git.
+Helix config with WSAD navigation, tmux runner, and one-script setup/doctor.
 
 ## Files
 
-- `config.toml` - editor settings and keybindings.
-- `languages.toml` - language settings for common languages.
-- `scripts/` - tmux runner + language runner scripts used by `F5/F6/F7`.
-- `install.sh` - one-command local install (creates symlinks in `~/.config/helix`).
-- `helix.ui.md` - UX architecture and step-by-step workflow design.
+- `config.toml` - editor settings and keymaps.
+- `languages.toml` - language server config.
+- `scripts/` - tmux runner and language run/build/test mapping.
+- `install.sh` - install + self-heal + doctor checks.
 
-## Quick install
-
-```bash
-./install.sh
-```
-
-`install.sh` now does two things:
-- links config files into `~/.config/helix`
-- installs language support tooling (LSP/format helpers) for the configured stack
-
-Useful modes:
+## Install
 
 ```bash
-./install.sh --link-only   # symlinks only, no tool installation
-./install.sh --strict      # stop on first install failure
+./install.sh --strict
 ```
 
-Then in Helix:
-
-- `:config-reload` - reload config.
-- `:config-open` - open your Helix config.
-- `:lsp-restart` - restart language servers.
-
-Manual install (if needed):
+Other modes:
 
 ```bash
-mkdir -p ~/.config/helix
-ln -sfn "$PWD/config.toml" ~/.config/helix/config.toml
-ln -sfn "$PWD/languages.toml" ~/.config/helix/languages.toml
-ln -sfn "$PWD/scripts" ~/.config/helix/scripts
+./install.sh --link-only
+./install.sh --doctor
 ```
 
-## Main features (grouped)
+## Current keymap
 
-```text
-+-------------------+--------------------------------------------+---------------------------+
-| Group             | What you get                               | Main keys                 |
-+-------------------+--------------------------------------------+---------------------------+
-| WSAD movement     | Gamer-style normal/select movement         | w a s d, q e z x          |
-| Fast file access  | File + buffer pickers                      | Ctrl+p, Ctrl+b            |
-| Buffer switching  | Quick next/prev buffers                    | Tab, Shift+Tab            |
-| Code help         | Completion, hover, diagnostics             | Ctrl+space, Ctrl+k, Ctrl+d|
-| LSP navigation    | Definition/references/rename/actions       | Space+z/v/r/x             |
-| Runner (tmux)     | Dedicated RUN + BUILD panes per Helix pane | F5, F6, F7, Space+u/i/o   |
-| Config ops        | Open/reload config quickly                 | Space+t, Space+R          |
-+-------------------+--------------------------------------------+---------------------------+
-```
+### Normal mode
 
-## What install.sh installs
+- Move: `w a s d`
+- Word move: `q e z x`
+- Save: `Ctrl+s`
+- File/buffer picker: `Ctrl+p`, `Ctrl+b`
+- Search/diagnostics/hover: `Ctrl+f`, `Ctrl+d`, `Ctrl+k`
+- Enter insert/select: `Ctrl+r`, `Ctrl+e`
+- Runner: `F5` run, `F6` build, `F7` test
 
-Best-effort FULL install for configured + tested language stack.
-This includes runtime bootstrap attempts (`python3`, `node+npm`, `go`, `rustup/cargo`, `dotnet`) when missing.
+### Insert mode
 
-- `npm` global (to `~/.local`):
-  - `pyright`
-  - `typescript`, `typescript-language-server`
-  - `vscode-langservers-extracted` (HTML/CSS/JSON servers)
-  - `yaml-language-server`
-  - `bash-language-server`
-  - `@ansible/ansible-language-server`
-  - `dockerfile-language-server-nodejs`
-  - `@vue/language-server`
-  - `svelte-language-server`
-  - `graphql-language-service-cli`
-  - `sql-language-server`
-  - `intelephense` (PHP)
-  - `prettier`
-- `pip` user:
-  - `ruff`
-- `go install`:
-  - `gopls`
-  - `golangci-lint-langserver`
-  - `golangci-lint`
-  - `sqls`
-  - `terraform-ls`
-  - `shfmt`
-- `rustup`:
-  - `rust-analyzer`, `rustfmt`
-- `cargo install`:
-  - `marksman`
-  - `taplo-cli` (TOML LSP)
-  - `stylua`
-- system package manager (if available + `sudo`):
-  - `clangd` (C/C++)
-  - `lua-language-server`
-  - `markdown-oxide` (Markdown LSP)
-  - `jdtls` (Java)
-  - `nil`/`nixd` (Nix LSP)
-  - `php` CLI
-  - Java JDK
-  - dotnet SDK + `csharp-ls` (dotnet global tool)
+- Leave insert: `jk` or `Ctrl+r`
+- Save: `Ctrl+s`
+- Completion: `Ctrl+space`, `Ctrl+n`
 
-## Shortcut tables (WSAD profile v1)
+### Select mode
 
-These tables are the current source of truth.  
-We will update them iteratively.
+- Extend selection: `w a s d`
+- Leave select: `Ctrl+e`
+- Save: `Ctrl+s`
 
-### Movement
+### Clipboard via leader
 
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `w` | Move up | `move_line_up` |
-| Normal | `a` | Move left | `move_char_left` |
-| Normal | `s` | Move down | `move_line_down` |
-| Normal | `d` | Move right | `move_char_right` |
-| Normal | `q` | Previous word start | `move_prev_word_start` |
-| Normal | `e` | Next word start | `move_next_word_start` |
-| Normal | `z` | Previous word end | `move_prev_word_end` |
-| Normal | `x` | Next word end | `move_next_word_end` |
+- `Space+q` copy selection to system clipboard
+- `Space+w` delete selection
+- `Space+e` paste clipboard after cursor
 
-### Selection
+### Leader highlights
 
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Select | `w` | Extend up | `extend_line_up` |
-| Select | `a` | Extend left | `extend_char_left` |
-| Select | `s` | Extend down | `extend_line_down` |
-| Select | `d` | Extend right | `extend_char_right` |
+- LSP: `Space+a` code action, `Space+r` rename, `Space+z` definition, `Space+v` references, `Space+c` hover
+- Runner: `Space+u` toggle, `Space+i` focus run pane, `Space+o` focus build pane
+- Config: `Space+t` open config, `Space+R` reload config
 
-### Editing
+## Runner behavior
 
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Insert | `jk` | Exit insert mode | `normal_mode` |
+- F5/F6/F7 call `scripts/hx-tmux-runner.sh`.
+- Window naming:
+  - run mode -> `run <project>`
+  - build/test mode -> `debug <project>`
+- Existing same-name window is reused (no numeric windows).
+- Layout is fixed: left `RUN`, right `BUILD`.
 
-### Save
+## What install.sh manages
 
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `Ctrl+s` | Save file | `:write` |
-| Insert | `Ctrl+s` | Save file | `:write` |
-| Select | `Ctrl+s` | Save file | `:write` |
-
-### Navigation
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `Ctrl+p` | Open file picker | `file_picker` |
-| Normal | `Ctrl+b` | Open buffer picker | `buffer_picker` |
-| Normal | `Tab` | Next buffer | `goto_next_buffer` |
-| Normal | `Shift+Tab` | Previous buffer | `goto_previous_buffer` |
-
-### Search
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `Ctrl+f` | Global search in workspace | `global_search` |
-
-### Diagnostics
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `Ctrl+d` | Open diagnostics picker | `diagnostics_picker` |
-
-### Docs
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `Ctrl+k` | Hover docs | `hover` |
-
-### Completion
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Insert | `Ctrl+space` | Trigger completion | `completion` |
-
-### Run/Build/Test
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal | `F5` | Run in tmux RUN target | `:run-shell-command ... hx-tmux-runner.sh run %{buffer_name}` |
-| Normal | `F6` | Build in tmux BUILD target | `:run-shell-command ... hx-tmux-runner.sh build %{buffer_name}` |
-| Normal | `F7` | Test in tmux BUILD target | `:run-shell-command ... hx-tmux-runner.sh test %{buffer_name}` |
-
-### Leader
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal (`space`) | `space` + `a` | Previous buffer | `goto_previous_buffer` |
-| Normal (`space`) | `space` + `d` | Next buffer | `goto_next_buffer` |
-| Normal (`space`) | `space` + `s` | Buffer picker | `buffer_picker` |
-| Normal (`space`) | `space` + `w` | File picker | `file_picker` |
-| Normal (`space`) | `space` + `f` | Global search | `global_search` |
-| Normal (`space`) | `space` + `e` | Diagnostics picker | `diagnostics_picker` |
-| Normal (`space`) | `space` + `q` | Close current split | `wclose` |
-| Normal (`space`) | `space` + `r` | Rename symbol | `rename_symbol` |
-| Normal (`space`) | `space` + `x` | Code action | `code_action` |
-| Normal (`space`) | `space` + `c` | Hover docs | `hover` |
-| Normal (`space`) | `space` + `z` | Go to definition | `goto_definition` |
-| Normal (`space`) | `space` + `v` | Go to references | `goto_reference` |
-| Normal (`space`) | `space` + `u` | Toggle tmux runner window | `:run-shell-command ... hx-tmux-runner.sh toggle %{buffer_name}` |
-| Normal (`space`) | `space` + `i` | Focus tmux RUN pane | `:run-shell-command ... hx-tmux-runner.sh focus-run %{buffer_name}` |
-| Normal (`space`) | `space` + `o` | Focus tmux BUILD pane | `:run-shell-command ... hx-tmux-runner.sh focus-build %{buffer_name}` |
-
-### Config
-
-| Mode | Keys | Action | Helix command |
-|---|---|---|---|
-| Normal (`space`) | `space` + `t` | Open Helix config | `:config-open` |
-| Normal (`space`) | `space` + `R` | Reload Helix config | `:config-reload` |
-
-## Included languages
-
-Basic settings are included for:
-
-- Rust, Go, Python
-- JavaScript, TypeScript, JSX, TSX
-- JSON, YAML, TOML
-- Bash, Lua, Nix
-- HTML, CSS, SCSS, Markdown
-
-## Next steps
-
-1. Run `hx --health` to see missing LSP servers and formatters.
-2. Install tools only for languages you use.
-3. Adjust keybindings in `config.toml` to your keyboard habits.
-
-## Runner support
-
-`F5/F6/F7` support is configured for:
-- Rust, Go, Python
-- JavaScript, TypeScript
-- C, C++, Java, C#
-- PHP, Shell, Lua
-
-Intentionally unsupported by runner:
-- SQL and data/config languages (JSON, YAML, TOML, etc.)
-
-tmux runner controls:
-- primary: `space + u/i/o`
+- Symlinks under `~/.config/helix`.
+- PATH in `~/.profile`, `~/.bashrc`, and `~/.config/environment.d/helix-config-path.conf`.
+- `hx` alias/shim and tmux PATH sync.
+- `stty -ixon` fix for `Ctrl+s`.
+- Language tooling (npm/go/cargo/rustup/system where available).
+- Health checks (`--doctor`) for required tools + configured language LSP readiness.

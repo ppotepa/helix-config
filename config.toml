@@ -6,6 +6,7 @@ cursorline = true
 bufferline = "multiple"
 color-modes = true
 true-color = true
+auto-completion = true
 text-width = 100
 rulers = [100]
 auto-format = true
@@ -52,49 +53,55 @@ other-lines = "disable"
 enable = false
 
 [keys.normal]
-# WSAD profile v1: movement is centered around the gamer keyboard area.
-w = "move_line_up"
+w = "move_visual_line_up"
 a = "move_char_left"
-s = "move_line_down"
+s = "move_visual_line_down"
 d = "move_char_right"
 q = "move_prev_word_start"
 e = "move_next_word_start"
 z = "move_prev_word_end"
 x = "move_next_word_end"
-C-s = ":write"
-C-p = "file_picker"
-C-b = "buffer_picker"
+
+"C-s" = ":write"
+"C-p" = "file_picker"
+"C-b" = "buffer_picker"
 tab = "goto_next_buffer"
-S-tab = "goto_previous_buffer"
-C-f = "global_search"
-C-d = "diagnostics_picker"
-C-k = "hover"
+"S-tab" = "goto_previous_buffer"
+"C-f" = "global_search"
+"C-d" = "diagnostics_picker"
+"C-k" = "hover"
+"C-r" = "insert_mode"
+"C-e" = "select_mode"
+
 F5 = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh run %{buffer_name}"
 F6 = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh build %{buffer_name}"
 F7 = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh test %{buffer_name}"
 
 [keys.insert]
 j = { k = "normal_mode" }
-C-s = ":write"
-C-space = "completion"
+"C-s" = ":write"
+"C-space" = "completion"
+"C-n" = "completion"
+"C-r" = "normal_mode"
 
 [keys.select]
-w = "extend_line_up"
+w = "extend_visual_line_up"
 a = "extend_char_left"
-s = "extend_line_down"
+s = "extend_visual_line_down"
 d = "extend_char_right"
-C-s = ":write"
+"C-s" = ":write"
+"C-e" = "normal_mode"
 
 [keys.normal.space]
-a = "goto_previous_buffer"
+q = "yank_main_selection_to_clipboard"
+w = "delete_selection"
+e = "paste_clipboard_after"
+
+a = "code_action"
 d = "goto_next_buffer"
 s = "buffer_picker"
-w = "file_picker"
 f = "global_search"
-e = "diagnostics_picker"
-q = "wclose"
 r = "rename_symbol"
-x = "code_action"
 c = "hover"
 z = "goto_definition"
 v = "goto_reference"
@@ -103,3 +110,8 @@ u = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh toggle %{b
 i = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh focus-run %{buffer_name}"
 o = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh focus-build %{buffer_name}"
 R = ":config-reload"
+
+[keys.select.space]
+q = "yank_main_selection_to_clipboard"
+w = "delete_selection"
+e = "paste_clipboard_after"
