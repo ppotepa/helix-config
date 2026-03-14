@@ -117,7 +117,11 @@ t = ":config-open"
 u = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh toggle %{buffer_name}"
 i = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh focus-run %{buffer_name}"
 o = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh focus-build %{buffer_name}"
-R = ":config-reload"
+
+[keys.normal.space.R]
+r = ":rl"
+a = ":rla"
+c = ":config-reload"
 
 [keys.select.space]
 q = "yank_main_selection_to_clipboard"

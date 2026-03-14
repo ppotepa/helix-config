@@ -78,8 +78,9 @@ Nix support remains optional via `./install.sh --with-nix`.
 ### Leader highlights
 
 - LSP: `Space+a` code action, `Space+r` rename, `Space+z` definition, `Space+v` references, `Space+c` hover
+- Reload: `Space+R+r` reload current file, `Space+R+a` reload all files, `Space+R+c` reload Helix config
 - Runner: `Space+u` toggle, `Space+i` focus run pane, `Space+o` focus build pane
-- Config: `Space+t` open config, `Space+R` reload config
+- Config: `Space+t` open config
 - Select-mode clipboard: `Ctrl+c` copy, `Ctrl+x` cut/delete, `Ctrl+v` paste; undo is `Ctrl+z`
 
 ## Runner behavior
