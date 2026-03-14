@@ -61,6 +61,11 @@ q = "move_prev_word_start"
 e = "move_next_word_start"
 z = "move_prev_word_end"
 x = "move_next_word_end"
+h = ["extend_line_below", "yank", "collapse_selection"]
+j = ["extend_line_below", "yank", "paste_after", "collapse_selection"]
+J = ["extend_line_below", "yank", "paste_before", "collapse_selection"]
+k = ["extend_line_below", "delete_selection"]
+l = ["extend_line_below", "toggle_comments", "collapse_selection"]
 
 "C-s" = ":write"
 "C-r" = "insert_mode"
@@ -83,6 +88,8 @@ F7 = ":run-shell-command $HOME/.config/helix/scripts/hx-tmux-runner.sh test %{bu
 
 [keys.insert]
 j = { k = "normal_mode" }
+"A-j" = ["normal_mode", "extend_line_below", "yank", "paste_after", "collapse_selection", "insert_mode"]
+"A-J" = ["normal_mode", "extend_line_below", "yank", "paste_before", "collapse_selection", "insert_mode"]
 "C-s" = ":write"
 "C-space" = "completion"
 "C-n" = "completion"
@@ -93,6 +100,8 @@ w = "extend_visual_line_up"
 a = "extend_char_left"
 s = "extend_visual_line_down"
 d = "extend_char_right"
+j = ["yank", "paste_after"]
+J = ["yank", "paste_before"]
 "C-s" = ":write"
 "C-e" = "normal_mode"
 "C-z" = "undo"

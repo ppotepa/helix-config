@@ -55,42 +55,63 @@ Nix support remains optional via `./install.sh --with-nix`.
 
 ## Current keymap
 
-### Normal mode
-- Move: `w a s d`
+### Navigation
+
+- Cursor move: `w a s d`
 - Word move: `q e z x`
-- Save: `Ctrl+s`
-- Enter insert: `Ctrl+r`, select: `Ctrl+e`
-- Clipboard: `Ctrl+q` copy selection, `Ctrl+w` paste, `Ctrl+x` cut/delete
-- File/buffer picker: `Ctrl+p`, `Ctrl+b`
-- Search/diagnostics/hover: `Ctrl+f`, `Ctrl+d`, `Ctrl+k`
-- Enter insert/select: `Ctrl+r`, `Ctrl+e`
-- Runner: `F5` run, `F6` build, `F7` test
+- Next/previous buffer: `Tab` / `Shift+Tab`
 
-### Insert mode
+### Modes
 
-- Leave insert: `jk` or `Ctrl+r`
-- Save: `Ctrl+s`
-- Completion: `Ctrl+space`, `Ctrl+n`
+- Enter insert mode: `Ctrl+r`
+- Enter select mode: `Ctrl+e`
+- Leave insert mode: `jk` or `Ctrl+r`
+- Leave select mode: `Ctrl+e`
 
-### Select mode
+### Line and selection editing
 
-- Extend selection: `w a s d`
-- Leave select: `Ctrl+e`
-- Save: `Ctrl+s`
+- Copy current line (normal): `h`
+- Duplicate below: `j` (normal/select), `Alt+j` (insert)
+- Duplicate above: `J` (normal/select), `Alt+J` (insert)
+- Delete current line/selection: `k` (normal), `Ctrl+x` (normal/select)
+- Toggle comment on current line (normal): `l`
 
-### Clipboard via leader
+### Save, undo, and completion
 
-- `Space+q` copy selection to system clipboard
-- `Space+w` delete selection
-- `Space+e` paste clipboard after cursor
+- Save: `Ctrl+s` (normal/insert/select)
+- Undo: `Ctrl+z` (normal/select)
+- Completion: `Ctrl+space` or `Ctrl+n` (insert)
 
-### Leader highlights
+### Clipboard
 
-- LSP: `Space+a` code action, `Space+r` rename, `Space+z` definition, `Space+v` references, `Space+c` hover
-- Reload: `Space+R+r` reload current file, `Space+R+a` reload all files, `Space+R+c` reload Helix config
-- Runner: `Space+u` toggle, `Space+i` focus run pane, `Space+o` focus build pane
-- Config: `Space+t` open config
-- Select-mode clipboard: `Ctrl+c` copy, `Ctrl+x` cut/delete, `Ctrl+v` paste; undo is `Ctrl+z`
+- System clipboard copy/paste/cut (normal/select): `Ctrl+c`, `Ctrl+v`, `Ctrl+x`
+- Leader clipboard: `Space+q` copy, `Space+w` delete, `Space+e` paste
+
+### Files, search, and diagnostics
+
+- File picker: `Ctrl+p`
+- Buffer picker: `Ctrl+b`
+- Global search: `Ctrl+f`
+- Diagnostics picker: `Ctrl+d`
+- Hover (normal): `Ctrl+k`
+
+### LSP and code intelligence (leader)
+
+- Code action: `Space+a`
+- Rename symbol: `Space+r`
+- Definition/references/hover: `Space+z`, `Space+v`, `Space+c`
+
+### Reload and config
+
+- Reload current file: `Space+R+r`
+- Reload all files: `Space+R+a`
+- Reload Helix config: `Space+R+c`
+- Open config: `Space+t`
+
+### Runner integration
+
+- Run/build/test current file: `F5` / `F6` / `F7`
+- Toggle/focus runner panes: `Space+u`, `Space+i`, `Space+o`
 
 ## Runner behavior
 
