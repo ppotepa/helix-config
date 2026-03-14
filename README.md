@@ -8,12 +8,21 @@ Helix config with WSAD navigation, tmux runner, and one-script setup/doctor.
 - `languages.toml` - language server config.
 - `scripts/` - tmux runner and language run/build/test mapping.
 - `install.sh` - install + self-heal + doctor checks.
+- `update.sh` - refresh Helix config links only.
 
 ## Install
 
 ```bash
 ./install.sh --strict
 ```
+
+## Update config only
+
+```bash
+./update.sh
+```
+
+This refreshes the linked Helix config without reinstalling tooling.
 
 If Helix still has only syntax highlighting and no LSP/completion, run a forced repair:
 
